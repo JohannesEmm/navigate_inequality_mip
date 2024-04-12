@@ -175,7 +175,7 @@ iiasadb_data$Region <- stringi::stri_replace_all_regex(iiasadb_data$Region, patt
 
 iiasadb_data <- iiasadb_data %>% filter(Region %in% c("France", "India", "Brazil", "Mexico", "United States", "Canada", "China", "Russia", "Japan", "South Africa"))
 
-ggplot(read_rds("inequality_mip_full.Rdata") %>% group_by(Model, Scenario) %>% filter(!str_detect(Region, "\\|")) %>% summarize(Region=unique(Region)) %>% ungroup() %>% group_by(Model, Region) %>% summarize(Scenarios=length(Scenario)) %>% mutate(Region=stringi::stri_replace_all_regex(Region, pattern=country_naming$original, replacement=country_naming$new, vectorize=FALSE)) %>% filter(Region %in% countries_reported_max) %>% mutate(Region = factor(Region, levels = c("United States", "Canada", "France", "Japan", "Russia", "Mexico", "China", "Brazil", "South Africa", "India"))), aes(Region, Model, fill=Scenarios)) + geom_tile() + theme_minimal() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=Scenarios*6/10))  + scale_fill_gradient2(low = "white", mid = "yellow", high = "darkgreen") + scale_x_discrete(labels = function(x) str_wrap(x, width = 50))
+ggplot(read_rds("inequality_mip_full.Rdata") %>% filter(Variable=="Consumption|D1") %>% group_by(Model, Scenario) %>% filter(!str_detect(Region, "\\|")) %>% summarize(Region=unique(Region)) %>% ungroup() %>% group_by(Model, Region) %>% summarize(Scenarios=length(Scenario)) %>% mutate(Region=stringi::stri_replace_all_regex(Region, pattern=country_naming$original, replacement=country_naming$new, vectorize=FALSE)) %>% filter(Region %in% countries_reported_max) %>% mutate(Region = factor(Region, levels = c("United States", "Canada", "France", "Japan", "Russia", "Mexico", "China", "Brazil", "South Africa", "India"))), aes(Region, Model, fill=Scenarios)) + geom_tile() + theme_minimal() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=Scenarios))  + scale_fill_gradient2(low = "white", mid = "yellow", high = "darkgreen") + scale_x_discrete(labels = function(x) str_wrap(x, width = 50))
 saveplot("Regions cleaned")
 
 
@@ -256,7 +256,8 @@ iamc_incidence_curve(scen0 = "REF", scen1 = "Paris", year = 2050)
 iamc_incidence_curve(scen0 = "Paris", scen1 = "Paris_redist", year = 2050)
 iamc_incidence_curve(scen0 = "REF", scen1 = "Paris_redist", year = 2050)
 iamc_incidence_curve(scen0 = "REF", scen1 = "REF_impact", year = 2050)
-
+#Incidence curve for Deliverable
+iamc_incidence_curve(scen0 = "REF", scen1 = "Paris", year = 2050, aggregate_use = measure_inequality, Regions = countries_reported)
 
 
 
@@ -269,15 +270,17 @@ iamc_incidence_curve(scen0 = "REF", scen1 = "REF_impact", year = 2050)
 iamc_lineplot(reg=countries_reported, var="Inequality index|Gini")
 #recompute for missing models
 gini_recomputed <- iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=reldist::gini(value)) %>% mutate(Variable="Gini_recomputed")
-#Add variable with reported or recomputed "Gini_full"
-all_ginis <- rbind(iiasadb_data %>% filter(Variable=="Inequality index|Gini"), gini_recomputed) %>% pivot_wider(id_cols = c(Model, Region, Scenario, Year), names_from = Variable) %>% mutate(Gini_full=ifelse(is.na(`Inequality index|Gini`), Gini_recomputed, `Inequality index|Gini`)) %>% pivot_longer(cols = c(`Inequality index|Gini`, Gini_recomputed, Gini_full), names_to = "Variable") 
-iiasadb_data <- rbind(iiasadb_data %>% filter(!str_detect(Variable, "Gini")), all_ginis)
 
-iamc_lineplot(reg=countries_reported_max, var="Gini_recomputed")
-
-#Incidence curve for Deliverable
-iamc_incidence_curve(scen0 = "REF", scen1 = "Paris", year = 2050, aggregate_use = measure_inequality, Regions = countries_reported)
-
+use_original_gini <- F
+#(A) Add variable with reported or recomputed "Gini_full"
+if(use_original_gini){
+  all_ginis <- rbind(iiasadb_data %>% filter(Variable=="Inequality index|Gini"), gini_recomputed) %>% pivot_wider(id_cols = c(Model, Region, Scenario, Year), names_from = Variable) %>% mutate(Gini_full=ifelse(is.na(`Inequality index|Gini`), Gini_recomputed, `Inequality index|Gini`)) %>% pivot_longer(cols = c(`Inequality index|Gini`, Gini_recomputed, Gini_full), names_to = "Variable") 
+  iiasadb_data <- rbind(iiasadb_data %>% filter(!str_detect(Variable, "Gini")), all_ginis)
+  iamc_lineplot(reg=countries_reported_max, var="Gini_recomputed")
+}else{
+#(B) always recompute
+  iiasadb_data <- rbind(iiasadb_data %>% filter(!str_detect(Variable, "Gini")), gini_recomputed %>% mutate(Variable="Gini_full"))
+}
 
 
 #Sen-Welfare effect decomposition Figure
@@ -476,3 +479,9 @@ hutils::replace_pattern_in("carbon(.*)capita","Carbon revenue per capita (1,000 
 
 #reg_epc_obs <- cbind(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population), predict(object = reg_carbrev, newdata = data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population)))
 #table(reg_epc_obs$Model, reg_epc_obs$Region)
+
+
+
+
+
+source("new_plots_reorder.R")
