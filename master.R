@@ -291,8 +291,15 @@ data_welfare_effect <- data_welfare_effect %>% filter(Variable.x==Variable.y) %>
 data_welfare_effect <- data_welfare_effect %>% group_by(Model, Region, Year) %>% pivot_wider(id_cols = c(Model, Region, Year, Scenario.x, Scenario.y), names_from = Variable, values_from = c(relchange, value.x, value.y))
 #set NAs to zero as zero change for non uploaded scenarios
 data_welfare_effect[is.na(data_welfare_effect)] <- 0
+
+
+#fpr revision reordering, keep always REF as reference, hence don't do any changes
+data_welfare_effect_revision <- data_welfare_effect %>% mutate(Scenario.x=as.character(Scenario.x), Scenario.y=as.character(Scenario.y))
 #for impact scenarios: use avoided impacts (different from wb2c to impact etc.
 data_welfare_effect <- data_welfare_effect %>% mutate(Scenario.x=as.character(Scenario.x), Scenario.y=as.character(Scenario.y)) %>% mutate(Scenario.x=ifelse(str_detect(Scenario.y, "impact") & Scenario.x=="REF", "REF_original", ifelse(str_detect(Scenario.y, "impact") & Scenario.x=="REF_impact", "REF", Scenario.x)))
+
+
+
 
 sdn <- function(x) ifelse(length(x)==1, 0, sd(x))
 data_welfare_effect_mod_mean <- data_welfare_effect  %>% group_by(Region, Year, Scenario.x, Scenario.y) %>% summarize(`MEAN_relchange_GDP|PPP`= mean(`relchange_GDP|PPP`, na.rm = T), MEAN_relchange_Equality_index = mean(relchange_Equality_index), MEAN_abschange_Gini=mean(-(`value.y_Equality_index`-`value.x_Equality_index`)), `SD_relchange_GDP|PPP`=sdn(`relchange_GDP|PPP`), SD_relchange_Equality_index = sdn(relchange_Equality_index), SD_abschange_Gini=sdn(-(`value.y_Equality_index`-`value.x_Equality_index`)))
