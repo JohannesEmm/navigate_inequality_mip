@@ -128,8 +128,7 @@ cum_global_emissions = cumsum(for_cum_5)) %>%
 #make cumulative emissions start at 0 in 2020
 ref_emissions <- ref_emissions %>% group_by(Scenario,Model) %>% mutate(cum_global_emissions=cum_global_emissions-mean(cum_global_emissions[Year==2020]))
 
-# Stop AIM/PHI and E3ME cumulative emissions in 2050
-ref_emissions$cum_global_emissions[ref_emissions$Model=="AIM/PHI" & ref_emissions$Year > 2050] <- NA
+# Stop E3ME cumulative emissions in 2050
 ref_emissions$cum_global_emissions[ref_emissions$Model=="E3ME" & ref_emissions$Year > 2050] <- NA
 
 

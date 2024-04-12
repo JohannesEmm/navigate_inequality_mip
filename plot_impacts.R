@@ -5,7 +5,7 @@
 
 # Save temperature data
 mip_50_final <- mip_income_d %>% 
-  filter(Model == "E3ME" | Model == "AIM") %>% 
+  filter(Model == "E3ME") %>% 
   # filter(Year == 2050) %>% 
   group_by(Model, Region) %>% 
   mutate(
@@ -16,7 +16,7 @@ mip_50_final <- mip_income_d %>%
   distinct()
 
 mip_100_final <- mip_income_d %>% 
-  filter(Model != "E3ME" & Model != "AIM") %>% 
+  filter(Model != "E3ME") %>% 
   # filter(Year == 2100) %>% 
   group_by(Model, Region) %>% 
   mutate(
