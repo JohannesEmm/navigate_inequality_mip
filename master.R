@@ -281,11 +281,17 @@ if(use_original_gini){
 #(B) always recompute
   iiasadb_data <- rbind(iiasadb_data %>% filter(!str_detect(Variable, "Gini")), gini_recomputed %>% mutate(Variable="Gini_full"))
 }
+#add decile ratios
+iiasadb_data <- rbind(iiasadb_data, 
+  iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=mean(value[Variable==str_glue("{measure_inequality}|D10")])/mean(value[Variable==str_glue("{measure_inequality}|D1")])) %>% mutate(Variable="D10D1"),
+  iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=(mean(value[Variable==str_glue("{measure_inequality}|D10")])+mean(value[Variable==str_glue("{measure_inequality}|D9")]))/(mean(value[Variable==str_glue("{measure_inequality}|D1")])+mean(value[Variable==str_glue("{measure_inequality}|D2")]))) %>% mutate(Variable="D80D20"),
+  iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=exp(mean(log(value))/mean(value)-1)) %>% mutate(Variable="Atkinson_1")
+)
 
 
 #Sen-Welfare effect decomposition Figure
 data_welfare_effect <- iiasadb_data %>% filter(Variable=="GDP|PPP" | Variable=="Gini_full") %>% mutate(value=ifelse(Variable=="Gini_full", 1-value, value), Variable = gsub("Gini_full", "Equality_index", Variable))
-#make sure to remove country model combination swithout data
+#make sure to remove country model combinations without data
 data_welfare_effect <- data_welfare_effect %>% filter(!is.na(value)) %>% filter(!(Model=="WITCH" & Region=="Canada") & !(Model=="GEM-E3" & Region=="Japan") & !(Model=="E3ME" & Region=="China") & !(Model=="E3ME" & Region=="Japan"))
 #compute scenario pair wise values and differens (x= from y = to scenario)
 data_welfare_effect <- transform(merge(data_welfare_effect, data_welfare_effect, by = c('Model', 'Region', 'Year')), relchange = value.y/value.x-1)
@@ -471,10 +477,12 @@ saveplot("Carbon Revenes and Gini impact")
 #and fix start at zero
 ggplot(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050) %>% filter(`Emissions|CO2`>=0)) + geom_point(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index), color=Model, alpha=Year)) + facet_wrap(Region ~ ., scales = "free", nrow = 2) + theme(legend.position = "bottom") + geom_smooth(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index)), method="lm", formula = y ~ 0 + x) + labs(x="Carbon Revenues per capita [USD/cap]", y = "Change in the Gini with EPC in the Paris senario [points]") + geom_hline(yintercept = 0)
 
-reg_carbrev <- lm(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population *1e-3) %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM"), Region=as.factor(Region), Region=relevel(Region, ref="United States")), formula = "gini_change ~ carbon_revenue_capita + Region + Model")
+
+data_welfare_effect_reordered <- data_welfare_effect_reordered %>% mutate(Type=case_when(Model %in% c("AIM", "GEM-E3", "Imaclim") ~ "CGE", Model %in% c("ReMIND", "WITCH") ~ "DP-IAM", Model %in% c("NICE", "RICE50+") ~ "CB-IAM", Model %in% c("E3ME") ~ "Macroeconometric", TRUE ~ "Other"))
+reg_carbrev <- lm(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population *1e-3) %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM"), Region=as.factor(Region), Region=relevel(Region, ref="United States")), formula = "gini_change ~ carbon_revenue_capita + Region + Type")
 summary(reg_carbrev)
 stargazer::stargazer(reg_carbrev, type = "latex", single.row = T, out = paste0(graphdir, "/reg.tex"), dep.var.labels = "Gini impact  [points]")
-hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
+hutils::replace_pattern_in("Model|Region|Type","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("carbon(.*)capita","Carbon revenue per capita (1,000 $)", file_pattern="*.tex", basedir = graphdir)
 
 #reg_epc_obs <- cbind(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population), predict(object = reg_carbrev, newdata = data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population)))

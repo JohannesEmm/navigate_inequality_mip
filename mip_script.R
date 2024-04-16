@@ -175,10 +175,11 @@ ggplot(policy_df) + geom_point(aes(REF/country_y_ref-1, (Paris-REF)/REF, color=R
 ggplot(policy_df) + geom_point(aes(as.numeric(gsub("D","",Decile)), (Paris-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + labs(x="Decile", y="Relative change from REF to Paris") + scale_x_continuous(labels = seq(1,10), breaks=seq(1,10)) + scale_shape_manual(name = "Model", values = mod_letters_utf)
 saveplot("Policy Impact by Decile")
 
-
+#add model type to delta_income_policy
+policy_df <- policy_df %>% mutate(Type=case_when(Model %in% c("AIM", "GEM-E3", "Imaclim") ~ "CGE", Model %in% c("ReMIND", "WITCH") ~ "DP-IAM", Model %in% c("NICE", "RICE50+") ~ "CB-IAM", Model %in% c("E3ME") ~ "Macroeconometric", TRUE ~ "Other"))
 
 # Regressing difference in decile-level income due to policy on income levels under REF
-policy_impact_reg <- lm(log(delta_income_policy) ~ log(REF) + Model + Region +
+policy_impact_reg <- lm(log(delta_income_policy) ~ log(REF) + Type + Region +
                           factor(Year),
                         data = policy_df %>% 
                           filter(delta_income_policy < 0) %>% 
@@ -194,7 +195,7 @@ stargazer(policy_impact_reg,
           out = paste0(graphdir, "/policy_impact_elast.tex"))
 
 hutils::replace_pattern_in("log\\(REF\\)", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
-hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
+hutils::replace_pattern_in("Model|Region|Type","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("factor\\(Year\\)","", file_pattern="*.tex", basedir = graphdir)
 # reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))
 # table(reg_policy_obs$Model, reg_policy_obs$Region)
@@ -222,7 +223,7 @@ policy_elast = function(r) {
   
   else {
     
-    reg_tmp <- lm(log(delta_income_policy) ~ log(REF) + Model +
+    reg_tmp <- lm(log(delta_income_policy) ~ log(REF) + Type +
                     factor(Year),
                   data = df_tmp %>% 
                     filter(delta_income_policy < 0) %>% 
@@ -242,7 +243,7 @@ policy_elast = function(r) {
             out = paste0(graphdir, "/", r, "_", "policy_impact_elast.tex"))
   
   hutils::replace_pattern_in("log(REF)", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
-  hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
+  hutils::replace_pattern_in("Model|Region|Type","", file_pattern="*.tex", basedir = graphdir)
   hutils::replace_pattern_in("factor(Year)","", file_pattern="*.tex", basedir = graphdir)
   
   
