@@ -290,7 +290,10 @@ iiasadb_data <- rbind(iiasadb_data,
 
 
 #Sen-Welfare effect decomposition Figure
-data_welfare_effect <- iiasadb_data %>% filter(Variable=="GDP|PPP" | Variable=="Gini_full") %>% mutate(value=ifelse(Variable=="Gini_full", 1-value, value), Variable = gsub("Gini_full", "Equality_index", Variable))
+#data_welfare_effect <- iiasadb_data %>% filter(Variable=="GDP|PPP" | Variable=="Gini_full") %>% mutate(value=ifelse(Variable=="Gini_full", 1-value, value), Variable = gsub("Gini_full", "Equality_index", Variable))
+#now keep also Atkinson and decile rations (remember, Equality_index = 1-Gini)
+data_welfare_effect <- iiasadb_data %>% filter(Variable=="GDP|PPP" | Variable=="Gini_full" | Variable=="D10D1" | Variable=="D80D20" | Variable=="Atkinson_1") %>% mutate(value=ifelse(Variable=="Gini_full", 1-value, value), Variable = gsub("Gini_full", "Equality_index", Variable))
+
 #make sure to remove country model combinations without data
 data_welfare_effect <- data_welfare_effect %>% filter(!is.na(value)) %>% filter(!(Model=="WITCH" & Region=="Canada") & !(Model=="GEM-E3" & Region=="Japan") & !(Model=="E3ME" & Region=="China") & !(Model=="E3ME" & Region=="Japan"))
 #compute scenario pair wise values and differens (x= from y = to scenario)
@@ -402,10 +405,10 @@ ggplot(data_welfare_effect_mod_mean %>% filter(Year >=2025 & Year <=2100 & Regio
 saveplot("Change only GDP")
 ggplot(data_welfare_effect_mod_mean %>% filter(Year >=2025 & Year <=2100 & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("Paris", "Paris_redist", "Paris_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy"))) + geom_line(aes(x = Year, y = MEAN_abschange_Gini, color=scenarioclass), size = 1) + facet_wrap(Region ~ ., scales = "fixed", nrow=3) + geom_hline(yintercept = 0) + theme_minimal() + scale_y_continuous(labels=scales::percent) 
 saveplot("Change only Gini")
-ggplot(data_welfare_effect_mod_mean %>% filter(Year >=2025 & Year <=2100 & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("Paris", "Paris_redist", "Paris_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy")) %>% pivot_longer(cols = 5:10, names_to = "variable") %>% filter(variable %in% c("MEAN_abschange_Gini", "MEAN_relchange_GDP|PPP"))) + geom_line(aes(x = Year, y = value, color=scenarioclass), size = 1) + facet_grid(Region ~ variable) + geom_hline(yintercept = 0) + theme_minimal() + scale_y_continuous(labels=scales::percent) + theme(legend.position = "bottom")
-saveplot("Change GDP and Gini")
+#ggplot(data_welfare_effect_mod_mean %>% filter(Year >=2025 & Year <=2100 & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("Paris", "Paris_redist", "Paris_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy")) %>% pivot_longer(cols = 5:10, names_to = "variable") %>% filter(variable %in% c("MEAN_abschange_Gini", "MEAN_relchange_GDP|PPP"))) + geom_line(aes(x = Year, y = value, color=scenarioclass), size = 1) + facet_grid(Region ~ variable) + geom_hline(yintercept = 0) + theme_minimal() + scale_y_continuous(labels=scales::percent) + theme(legend.position = "bottom")
+#saveplot("Change GDP and Gini")
 #for all models
-ggplot(data_welfare_effect %>% filter(Year >=2025 & Year <=2100 & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("Paris", "Paris_redist", "Paris_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy")) %>% mutate(MEAN_abschange_Gini=-(value.y_Equality_index-value.x_Equality_index),  `MEAN_relchange_GDP|PPP` = `relchange_GDP|PPP`) %>% pivot_longer(cols = 14:15, names_to = "variable") %>% filter(variable %in% c("MEAN_abschange_Gini", "MEAN_relchange_GDP|PPP"))) + geom_line(aes(x = Year, y = value, color=scenarioclass, group=interaction(scenarioclass, Model)), size = 1) + facet_grid(Region ~ variable) + geom_hline(yintercept = 0) + theme_minimal() + scale_y_continuous(labels=scales::percent) + theme(legend.position = "bottom") + ylim(-swfrange,+swfrange)
+#ggplot(data_welfare_effect %>% filter(Year >=2025 & Year <=2100 & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("Paris", "Paris_redist", "Paris_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy")) %>% mutate(MEAN_abschange_Gini=-(value.y_Equality_index-value.x_Equality_index),  `MEAN_relchange_GDP|PPP` = `relchange_GDP|PPP`) %>% pivot_longer(cols = 14:15, names_to = "variable") %>% filter(variable %in% c("MEAN_abschange_Gini", "MEAN_relchange_GDP|PPP"))) + geom_line(aes(x = Year, y = value, color=scenarioclass, group=interaction(scenarioclass, Model)), size = 1) + facet_grid(Region ~ variable) + geom_hline(yintercept = 0) + theme_minimal() + scale_y_continuous(labels=scales::percent) + theme(legend.position = "bottom") + ylim(-swfrange,+swfrange)
 
 
 
@@ -478,16 +481,15 @@ saveplot("Carbon Revenes and Gini impact")
 ggplot(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050) %>% filter(`Emissions|CO2`>=0)) + geom_point(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index), color=Model, alpha=Year)) + facet_wrap(Region ~ ., scales = "free", nrow = 2) + theme(legend.position = "bottom") + geom_smooth(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index)), method="lm", formula = y ~ 0 + x) + labs(x="Carbon Revenues per capita [USD/cap]", y = "Change in the Gini with EPC in the Paris senario [points]") + geom_hline(yintercept = 0)
 
 
+
+
+
 data_welfare_effect_reordered <- data_welfare_effect_reordered %>% mutate(Type=case_when(Model %in% c("AIM", "GEM-E3", "Imaclim") ~ "CGE", Model %in% c("ReMIND", "WITCH") ~ "DP-IAM", Model %in% c("NICE", "RICE50+") ~ "CB-IAM", Model %in% c("E3ME") ~ "Macroeconometric", TRUE ~ "Other"))
 reg_carbrev <- lm(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population *1e-3) %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM"), Region=as.factor(Region), Region=relevel(Region, ref="United States")), formula = "gini_change ~ carbon_revenue_capita + Region + Type")
 summary(reg_carbrev)
 stargazer::stargazer(reg_carbrev, type = "latex", single.row = T, out = paste0(graphdir, "/reg.tex"), dep.var.labels = "Gini impact  [points]")
 hutils::replace_pattern_in("Model|Region|Type","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("carbon(.*)capita","Carbon revenue per capita (1,000 $)", file_pattern="*.tex", basedir = graphdir)
-
-#reg_epc_obs <- cbind(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population), predict(object = reg_carbrev, newdata = data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population)))
-#table(reg_epc_obs$Model, reg_epc_obs$Region)
-
 
 
 
