@@ -285,7 +285,7 @@ if(use_original_gini){
 iiasadb_data <- rbind(iiasadb_data, 
   iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=mean(value[Variable==str_glue("{measure_inequality}|D10")])/mean(value[Variable==str_glue("{measure_inequality}|D1")])) %>% mutate(Variable="D10D1"),
   iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=(mean(value[Variable==str_glue("{measure_inequality}|D10")])+mean(value[Variable==str_glue("{measure_inequality}|D9")]))/(mean(value[Variable==str_glue("{measure_inequality}|D1")])+mean(value[Variable==str_glue("{measure_inequality}|D2")]))) %>% mutate(Variable="D80D20"),
-  iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=exp(mean(log(value))/mean(value)-1)) %>% mutate(Variable="Atkinson_1")
+  iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=1 - prod(value)^(1/length(value))/mean(value)) %>% mutate(Variable="Atkinson_1")
 )
 
 
