@@ -284,7 +284,7 @@ if(use_original_gini){
 #add decile ratios
 iiasadb_data <- rbind(iiasadb_data, 
   iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=mean(value[Variable==str_glue("{measure_inequality}|D10")])/mean(value[Variable==str_glue("{measure_inequality}|D1")])) %>% mutate(Variable="D10D1"),
-  iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=(mean(value[Variable==str_glue("{measure_inequality}|D10")])+mean(value[Variable==str_glue("{measure_inequality}|D9")]))/(mean(value[Variable==str_glue("{measure_inequality}|D1")])+mean(value[Variable==str_glue("{measure_inequality}|D2")]))) %>% mutate(Variable="D80D20"),
+  iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=(mean(value[Variable==str_glue("{measure_inequality}|D10")])+mean(value[Variable==str_glue("{measure_inequality}|D9")]))/(mean(value[Variable==str_glue("{measure_inequality}|D1")])+mean(value[Variable==str_glue("{measure_inequality}|D2")]))) %>% mutate(Variable="D8D2"),
   iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=1 - prod(value)^(1/length(value))/mean(value)) %>% mutate(Variable="Atkinson_1")
 )
 
@@ -292,7 +292,7 @@ iiasadb_data <- rbind(iiasadb_data,
 #Sen-Welfare effect decomposition Figure
 #data_welfare_effect <- iiasadb_data %>% filter(Variable=="GDP|PPP" | Variable=="Gini_full") %>% mutate(value=ifelse(Variable=="Gini_full", 1-value, value), Variable = gsub("Gini_full", "Equality_index", Variable))
 #now keep also Atkinson and decile rations (remember, Equality_index = 1-Gini)
-data_welfare_effect <- iiasadb_data %>% filter(Variable=="GDP|PPP" | Variable=="Gini_full" | Variable=="D10D1" | Variable=="D80D20" | Variable=="Atkinson_1") %>% mutate(value=ifelse(Variable=="Gini_full", 1-value, value), Variable = gsub("Gini_full", "Equality_index", Variable))
+data_welfare_effect <- iiasadb_data %>% filter(Variable=="GDP|PPP" | Variable=="Gini_full" | Variable=="D10D1" | Variable=="D8D2" | Variable=="Atkinson_1") %>% mutate(value=ifelse(Variable=="Gini_full", 1-value, value), Variable = gsub("Gini_full", "Equality_index", Variable))
 
 #make sure to remove country model combinations without data
 data_welfare_effect <- data_welfare_effect %>% filter(!is.na(value)) %>% filter(!(Model=="WITCH" & Region=="Canada") & !(Model=="GEM-E3" & Region=="Japan") & !(Model=="E3ME" & Region=="China") & !(Model=="E3ME" & Region=="Japan"))
