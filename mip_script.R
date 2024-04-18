@@ -207,33 +207,25 @@ hutils::replace_pattern_in("factor\\(Year\\)","", file_pattern="*.tex", basedir 
 policy_elast = function(r) {
   
   df_tmp <- policy_df %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM")) %>% 
-    filter(Region == r)
-  
-  if(r == "Canada") {
-    
-    df_tmp <- df_tmp %>% filter(Model != "WITCH")
-    
-    reg_tmp <- lm(log(delta_income_policy) ~ log(REF) +
+    filter(Region == r) %>% filter(!is.na(delta_income_policy))
+  if(length(unique(df_tmp$Model)) > 1){
+      reg_tmp <- lm(log(delta_income_policy) ~ log(REF) + Model +
                     factor(Year),
                   data = df_tmp %>% 
                     filter(delta_income_policy < 0) %>% 
                     mutate(delta_income_policy = -1*delta_income_policy))
-    
-    }
-  
-  else {
-    
-    reg_tmp <- lm(log(delta_income_policy) ~ log(REF) + Type +
-                    factor(Year),
+  } else {
+    reg_tmp <- lm(log(delta_income_policy) ~ log(REF) + factor(Year),
                   data = df_tmp %>% 
                     filter(delta_income_policy < 0) %>% 
                     mutate(delta_income_policy = -1*delta_income_policy))
-    
+  }
+      
     df_tmp$policy_elast <- coefficients(reg_tmp)[2]
     
-  }
   
-  stargazer(reg_tmp,
+  if(F){
+    stargazer(reg_tmp,
             type = "latex",
             dep.var.labels = "Change in decile income, from policy",
             model.names = FALSE,
@@ -245,8 +237,8 @@ policy_elast = function(r) {
   hutils::replace_pattern_in("log(REF)", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
   hutils::replace_pattern_in("Model|Region|Type","", file_pattern="*.tex", basedir = graphdir)
   hutils::replace_pattern_in("factor(Year)","", file_pattern="*.tex", basedir = graphdir)
-  
-  
+  }
+  print(paste(r, coefficients(reg_tmp)[2]))
   return(df_tmp)
 }
 
@@ -277,7 +269,7 @@ ggplot(policy_elast_df_plot %>%
                    point.padding = 0.5,
                    segment.color = 'grey50') +
 
-  coord_cartesian(ylim = c(0.85, 1.05)) +
+  #coord_cartesian(ylim = c(0.85, 1.05)) +
   guides(label = "none", color="none") +
   labs(x = "GDP per capita in 2020 (PPP)",
        y = "Climate Policy Income Elasticity") +
