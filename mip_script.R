@@ -179,7 +179,7 @@ saveplot("Policy Impact by Decile")
 policy_df <- policy_df %>% mutate(Type=case_when(Model %in% c("AIM", "GEM-E3", "Imaclim") ~ "CGE", Model %in% c("ReMIND", "WITCH") ~ "DP-IAM", Model %in% c("NICE", "RICE50+") ~ "CB-IAM", Model %in% c("E3ME") ~ "Macroeconometric", TRUE ~ "Other"))
 
 # Regressing difference in decile-level income due to policy on income levels under REF
-policy_impact_reg <- lm(log(delta_income_policy) ~ log(REF) + Type + Region +
+policy_impact_reg <- lm(log(delta_income_policy) ~ log(REF) + Model + Region +
                           factor(Year),
                         data = policy_df %>% 
                           filter(delta_income_policy < 0) %>% 
