@@ -170,7 +170,7 @@ countries_reported_max <- c("France", "India", "Brazil", "Mexico", "United State
 
 countries_reported <- countries_reported_max
 
-country_naming <- fread("country_naming.csv")
+country_naming <- fread("data/country_naming.csv")
 iiasadb_data$Region <- stringi::stri_replace_all_regex(iiasadb_data$Region, pattern=country_naming$original, replacement=country_naming$new, vectorize=FALSE)
 
 iiasadb_data <- iiasadb_data %>% filter(Region %in% c("France", "India", "Brazil", "Mexico", "United States", "Canada", "China", "Russia", "Japan", "South Africa"))
