@@ -288,18 +288,20 @@ ggplot(policy_elast_df_plot %>%
          full_join(gdp_pc, by = "Region") %>% 
          group_by(Region) %>% 
          slice_head(n = 1),
-       aes(x = gdp_pc, y = policy_elast, color = Region, label = Region)) +
+       aes(x = gdp_pc, y = policy_elast)) +
   geom_hline(yintercept = 1, linetype = "solid", color = "grey50") +
-  geom_point()   + # Show dots
-  geom_label_repel(box.padding   = 0.35, 
+  geom_point(aes(color = Region))   + # Show dots
+  geom_label_repel(aes(color = Region, label = Region), box.padding   = 0.35, 
                    point.padding = 0.5,
                    segment.color = 'grey50') +
-
-  #coord_cartesian(ylim = c(0.85, 1.05)) +
   guides(label = "none", color="none") +
   labs(x = "GDP per capita in 2020 (PPP)",
        y = "Climate Policy Income Elasticity") +
-  scale_x_continuous(labels = scales::dollar)
+  scale_x_continuous(labels = scales::dollar) + 
+geom_smooth(method="lm", formula = y ~ x, colour="black") +
+  geom_text(x = 15000, y = 1.12, label = 'Slope: -0.0054/k$', size = 6, color="black")
+  #ggpmisc::stat_poly_eq(formula = y ~ x, aes(label = paste(..eq.label..)),  parse = TRUE, size = 4, col = "black") +
+  
 saveplot("Policy Elasticity by Country Income", width = 8, height = 6)
 
 
