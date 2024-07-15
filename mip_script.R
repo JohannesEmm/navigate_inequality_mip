@@ -246,6 +246,32 @@ policy_elast_df_plot <- list()
 policy_elast_df_plot <- lapply(unique(policy_df$Region), policy_elast) %>% 
   bind_rows()
 
+### for revision: add elasticity estimation for all models
+model_avg_elasticity <- policy_df  %>% filter(delta_income_policy < 0) %>% mutate(delta_income_policy = -1*delta_income_policy) %>% filter(Model!="E3ME") %>% group_by(Model) %>% nest() %>% 
+  mutate(lm_model = map(data, ~lm(log(delta_income_policy) ~ log(REF) + factor(Year), data = .))) %>% mutate(tidy = map(lm_model, broom::tidy),
+                               glance = map(lm_model, broom::glance),
+                               augment = map(lm_model, broom::augment),
+                               rsq = glance %>% map_dbl('r.squared'),
+                               average_elasticity = tidy %>% map_dbl(function(x) x$estimate[2])) 
+#slope per model
+slope_per_model <- policy_df  %>% filter(delta_income_policy < 0) %>% mutate(delta_income_policy = -1*delta_income_policy) %>% filter(Model!="E3ME") %>% group_by(Model, Region) %>% nest() %>% 
+  mutate(lm_model = map(data, ~lm(log(delta_income_policy) ~ log(REF) + factor(Year), data = .))) %>% mutate(tidy = map(lm_model, broom::tidy),
+                                                                                              glance = map(lm_model, broom::glance),
+                                                                                              augment = map(lm_model, broom::augment),
+                                                                                              rsq = glance %>% map_dbl('r.squared'),
+                                                                                              slope = tidy %>% map_dbl(function(x) x$estimate[2])) %>%
+  left_join(gdp_pc) 
+slope_per_model <- slope_per_model %>% ungroup() %>% group_by(Model) %>% nest() %>% mutate(lm_model = map(data, ~lm(slope ~ gdp_pc, data = .))) %>% mutate(tidy = map(lm_model, broom::tidy),
+                                                                                                                                        glance = map(lm_model, broom::glance),
+                                                                                                                                        augment = map(lm_model, broom::augment),
+                                                                                                                                        rsq = glance %>% map_dbl('r.squared'),
+                                                                                                                                        slope = tidy %>% map_dbl(function(x) x$estimate[2]*1e3),
+                                                                                                                                        slope_significance = tidy %>% map_dbl(function(x) x$p.value[2]))
+
+model_elasticity_table <- model_avg_elasticity %>% select(Model, average_elasticity) %>% left_join(slope_per_model %>% select(Model, slope, slope_significance)) %>% mutate(slope_significance=paste0(sprintf("%01.2f",slope_significance),gtools::stars.pval(slope_significance)), average_elasticity=round(average_elasticity, 3)) %>% arrange(Model) 
+write_xlsx(model_elasticity_table, paste0(graphdir, "/model_elasticity_table.xlsx"))
+###
+
 # merge with 2020 GDP per capita, in PPP $
 gdp_pc <- mip_income_d %>% 
   filter(Year == 2020) %>% 

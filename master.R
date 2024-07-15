@@ -8,6 +8,7 @@ require(data.table)
 require(readxl)
 require(writexl)
 require(yaml)
+require(gtools)
 
 update_from_iiasadb <- F
 
