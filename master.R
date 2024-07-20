@@ -493,6 +493,11 @@ hutils::replace_pattern_in("Model|Region|Type","", file_pattern="*.tex", basedir
 hutils::replace_pattern_in("carbon(.*)capita","Carbon revenue per capita (1,000 $)", file_pattern="*.tex", basedir = graphdir)
 
 
+#carbon revenue regression separately
+carb_rev_effect_separate <- data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="Paris_redist" &  Scenario.x=="Paris" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population *1e-3) %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM"), Region=as.factor(Region), Region=relevel(Region, ref="United States")) %>% group_by(Model, Region) %>% nest() %>% 
+  mutate(lm_model = map(data, ~lm(gini_change ~ carbon_revenue_capita, data = .))) %>% mutate(tidy = map(lm_model, broom::tidy),glance = map(lm_model, broom::glance),augment = map(lm_model, broom::augment),rsq = glance %>% map_dbl('r.squared'),average_effect = tidy %>% map_dbl(function(x) x$estimate[2]))
+quantile(carb_rev_effect_separate$average_effect)
+
 
 
 source("new_plots_reorder.R")

@@ -96,6 +96,14 @@ ggsave(filename = file.path(graphdir, "Gini_map.png"), width = 11, height = 7.5,
 ggsave(filename = file.path(graphdir, "Gini_map.pdf"), width = 11, height = 7.5, plot = g, device = cairo_pdf)  
 
 
+ggplot(data = data_map_geometry) + borders("world", colour = "grey80", fill = NA) + geom_sf(aes(fill = ede_median_change, geometry = geometry)) + ggtitle("Impact on the EDE based welfare [Model median]") + labs(fill = "EDE change [%]", x = "", y = "", pattern="Agreement") + 
+  geom_sf_pattern(data = subset(data_map_geometry, ede_agreement_num < 0.66), aes(pattern = "Agreement < 66%", geometry = geometry), pattern = 'stripe', pattern_angle = 45, pattern_density = 0.1, pattern_spacing = 0.02, pattern_color="grey20", pattern_alpha=0.5, show.legend = "point") + scale_pattern_manual(values = c("Agreement < 66%" = "stripe")) +
+  theme_bw() + theme(strip.background = element_rect(fill = "white"), legend.position = "bottom") + coord_sf(ylim = c(-50, 90))  + facet_grid(Scenario.y.nice ~ Year) + geom_sf_text(aes(label = sprintf("%+.1f", ede_median_change) , geometry = geometry), colour = "black", size=3.5) + theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank()) + theme(strip.text.y = element_text(size = 7)) + scale_fill_gradient2(low="red", high="blue", mid = "grey", midpoint = 0, guide="colorbar",na.value="white", lim = c(-11, +14)) 
+g <- ggplot_gtable(ggplot_build(last_plot()+ theme(strip.text.y = element_text(colour = 'white', face = "bold")))); stripr <- which(grepl('strip-r', g$layout$name)); fills <- c("darkred","darkblue","darkgreen")
+k <- 1; for (i in stripr) {j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder)); g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]; k <- k+1;}
+grid::grid.draw(g)
+ggsave(filename = file.path(graphdir, "EDE_map.pdf"), width = 11, height = 7.5, plot = g, device = cairo_pdf)  
+
 
 
 
